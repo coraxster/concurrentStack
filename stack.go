@@ -49,7 +49,7 @@ func (s *Stack) Dequeue() interface{} {
 	}
 }
 
-func (s *Stack) Len() interface{} {
+func (s *Stack) Len() int {
 	c := 0
 	el := (*Element)(s.head)
 	for {

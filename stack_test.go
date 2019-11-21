@@ -40,7 +40,7 @@ func BenchmarkEnqueueDequeue(b *testing.B) {
 	}
 }
 
-// BenchmarkConcurrentEnqueueDequeue-4   	   10000	    296518 ns/op
+// BenchmarkConcurrentEnqueueDequeue-4   	   10000	    484614 ns/op
 func BenchmarkConcurrentEnqueueDequeue(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		l := NewStack()
@@ -52,13 +52,10 @@ func BenchmarkConcurrentEnqueueDequeue(b *testing.B) {
 			}
 			wg.Done()
 		}
-		cf := 1
-		if n > 100 {
-			cf = 10
-		}
+		cf := 32
 		wg.Add(cf)
 		for i := 0; i < cf; i++ {
-			worker(n / cf)
+			go worker(n / cf)
 		}
 		wg.Wait()
 	}
@@ -95,7 +92,7 @@ func BenchmarkSliceEnqueueDequeue(b *testing.B) {
 	}
 }
 
-// BenchmarkSliceConcurrentEnqueueDequeue-4   	   10000	    224108 ns/op
+// BenchmarkSliceConcurrentEnqueueDequeue-4   	   10000	    587031 ns/op
 func BenchmarkSliceConcurrentEnqueueDequeue(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		sl := make([]int, 0)
@@ -114,13 +111,10 @@ func BenchmarkSliceConcurrentEnqueueDequeue(b *testing.B) {
 			}
 			wg.Done()
 		}
-		cf := 1
-		if n > 100 {
-			cf = 10
-		}
+		cf := 32
 		wg.Add(cf)
 		for i := 0; i < cf; i++ {
-			worker(n / cf)
+			go worker(n / cf)
 		}
 		wg.Wait()
 	}
