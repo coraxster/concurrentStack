@@ -1,6 +1,9 @@
 package main
 
 import (
+	"github.com/enriquebris/goconcurrentqueue"
+	"github.com/yireyun/go-queue"
+	"runtime"
 	"sync"
 	"testing"
 )
@@ -15,7 +18,7 @@ func BenchmarkEnqueue(b *testing.B) {
 	}
 }
 
-// BenchmarkDequeue-4   	  102180	    117269 ns/op
+// BenchmarkDequeue-4   	  108488	    107604 ns/op
 func BenchmarkDequeue(b *testing.B) {
 	l := NewStack()
 	for i := 0; i < b.N; i++ {
@@ -40,7 +43,7 @@ func BenchmarkEnqueueDequeue(b *testing.B) {
 	}
 }
 
-// BenchmarkConcurrentEnqueueDequeue-4   	   10000	    484614 ns/op
+// BenchmarkConcurrentEnqueueDequeue-4   	   10000	    495353 ns/op
 func BenchmarkConcurrentEnqueueDequeue(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		l := NewStack()
@@ -52,7 +55,7 @@ func BenchmarkConcurrentEnqueueDequeue(b *testing.B) {
 			}
 			wg.Done()
 		}
-		cf := 32
+		cf := runtime.NumCPU() * 4
 		wg.Add(cf)
 		for i := 0; i < cf; i++ {
 			go worker(n / cf)
@@ -111,7 +114,57 @@ func BenchmarkSliceConcurrentEnqueueDequeue(b *testing.B) {
 			}
 			wg.Done()
 		}
-		cf := 32
+		cf := runtime.NumCPU() * 4
+		wg.Add(cf)
+		for i := 0; i < cf; i++ {
+			go worker(n / cf)
+		}
+		wg.Wait()
+	}
+}
+
+// BenchmarkFifoConcurrentEnqueueDequeue-4   	   10000	   1290037 ns/op
+func BenchmarkFifoConcurrentEnqueueDequeue(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		q := goconcurrentqueue.NewFIFO()
+		wg := sync.WaitGroup{}
+		worker := func(k int) {
+			for i := 0; i < k; i++ {
+				_ = q.Enqueue(nil)
+				_, _ = q.Dequeue()
+			}
+			wg.Done()
+		}
+		cf := runtime.NumCPU() * 4
+		wg.Add(cf)
+		for i := 0; i < cf; i++ {
+			go worker(n / cf)
+		}
+		wg.Wait()
+	}
+}
+
+// BenchmarkQueueConcurrentEnqueueDequeue-4   	   10000	    384129 ns/op
+func BenchmarkQueueConcurrentEnqueueDequeue(b *testing.B) {
+	for n := 1; n < b.N; n++ {
+		q := queue.NewQueue(uint32(n))
+		wg := sync.WaitGroup{}
+		worker := func(k int) {
+			for i := 0; i < k; i++ {
+				for {
+					if i, _ := q.Put(nil); i {
+						break
+					}
+				}
+				for {
+					if _, ok, _ := q.Get(); ok {
+						break
+					}
+				}
+			}
+			wg.Done()
+		}
+		cf := runtime.NumCPU() * 4
 		wg.Add(cf)
 		for i := 0; i < cf; i++ {
 			go worker(n / cf)

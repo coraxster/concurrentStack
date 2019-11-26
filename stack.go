@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"sync/atomic"
 	"unsafe"
 )
@@ -24,15 +25,12 @@ func (s *Stack) Enqueue(val int) {
 	}
 	newElP := unsafe.Pointer(newEl)
 	for {
-		newEl.next = nil
-		hP := s.head
-		if hP == nil && atomic.CompareAndSwapPointer(&s.head, nil, newElP) {
+		h := s.head
+		newEl.next = h
+		if atomic.CompareAndSwapPointer(&s.head, h, newElP) {
 			return
 		}
-		newEl.next = hP
-		if atomic.CompareAndSwapPointer(&s.head, hP, newElP) {
-			return
-		}
+		runtime.Gosched()
 	}
 }
 
@@ -46,6 +44,7 @@ func (s *Stack) Dequeue() interface{} {
 		if atomic.CompareAndSwapPointer(&s.head, hP, h.next) {
 			return h.val
 		}
+		runtime.Gosched()
 	}
 }
 
